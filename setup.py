@@ -28,7 +28,7 @@ class CleanCommand(clean):
     def run(self):
         extensions_to_remove = [".so", ".c"]
         files_to_remove = []
-        dirs_to_remove = ["setools.egg-info"]
+        dirs_to_remove = ["android-setools.egg-info"]
 
         if self.all:
             # --all includes Qt help files
@@ -81,6 +81,7 @@ class QtHelpCommand(Command):
 # Library linkage
 lib_dirs = ['.', '/usr/lib64', '/usr/lib', '/usr/local/lib']
 include_dirs = []
+extra_link_args = []
 
 with suppress(KeyError):
     userspace_src = os.environ["USERSPACE_SRC"]
@@ -88,6 +89,8 @@ with suppress(KeyError):
     include_dirs.insert(1, userspace_src + "/libselinux/include")
     lib_dirs.insert(0, userspace_src + "/libsepol/src")
     lib_dirs.insert(1, userspace_src + "/libselinux/src")
+    extra_link_args.append(userspace_src + "/libselinux/src/libselinux.a")
+    extra_link_args.append(userspace_src + "/libsepol/src/libsepol.a")
 
 if sys.platform.startswith('darwin'):
     macros=[('DARWIN',1)]
@@ -103,9 +106,10 @@ cython_annotate = bool(os.environ.get("SETOOLS_ANNOTATE", False))
 
 ext_py_mods = [Extension('setools.policyrep', ['setools/policyrep.pyx'],
                          include_dirs=include_dirs,
-                         libraries=['selinux', 'sepol'],
+                         libraries=[],
                          library_dirs=lib_dirs,
                          define_macros=macros,
+                         extra_link_args=extra_link_args,
                          extra_compile_args=['-Wextra',
                                              '-Waggregate-return',
                                              '-Wfloat-equal',
@@ -132,12 +136,16 @@ for lang in linguas:
     if lang and os.path.exists(join("man", lang)):
         installed_data.append((join('share/man', lang, 'man1'), glob.glob(join("man", lang, "*.1"))))
 
-setup(name='setools',
-      version='4.5.0-dev',
-      description='SELinux policy analysis tools.',
-      author='Chris PeBenito',
-      author_email='pebenito@ieee.org',
-      url='https://github.com/SELinuxProject/setools',
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
+setup(name='android-setools',
+      version='4.5.0-dev3',
+      description='Android SELinux policy analysis tools.',
+      author='Meir Komet',
+      author_email='mskomet1@gmail.com',
+      url='https://github.com/mkomet/setools',
       cmdclass={'build_qhc': QtHelpCommand, 'clean': CleanCommand},
       packages=['setools', 'setools.checker', 'setools.diff', 'setoolsgui', 'setoolsgui.apol'],
       scripts=['apol', 'sediff', 'seinfo', 'seinfoflow', 'sesearch', 'sedta', 'sechecker'],
@@ -165,9 +173,11 @@ setup(name='setools',
       # setup also requires libsepol and libselinux
       # C libraries and headers to compile.
       setup_requires=['setuptools', 'Cython>=0.27'],
-      install_requires=['setuptools'],
+      install_requires=['setuptools', 'PyQt5', 'networkx>=2.0'],
       extras_require={
           "analysis": "networkx>=2.0",
           "test": "tox"
-      }
+      },
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       )
