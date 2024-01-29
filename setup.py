@@ -81,6 +81,7 @@ class QtHelpCommand(Command):
 # Library linkage
 lib_dirs = ['.', '/usr/lib64', '/usr/lib', '/usr/local/lib']
 include_dirs = []
+extra_link_args = []
 
 with suppress(KeyError):
     userspace_src = os.environ["USERSPACE_SRC"]
@@ -88,6 +89,8 @@ with suppress(KeyError):
     include_dirs.insert(1, userspace_src + "/libselinux/include")
     lib_dirs.insert(0, userspace_src + "/libsepol/src")
     lib_dirs.insert(1, userspace_src + "/libselinux/src")
+    extra_link_args.append(userspace_src + "/libselinux/src/libselinux.a")
+    extra_link_args.append(userspace_src + "/libsepol/src/libsepol.a")
 
 if sys.platform.startswith('darwin'):
     macros=[('DARWIN',1)]
@@ -103,10 +106,10 @@ cython_annotate = bool(os.environ.get("SETOOLS_ANNOTATE", False))
 
 ext_py_mods = [Extension('setools.policyrep', ['setools/policyrep.pyx'],
                          include_dirs=include_dirs,
-                         libraries=['selinux', 'sepol'],
+                         libraries=[],
                          library_dirs=lib_dirs,
                          define_macros=macros,
-                         extra_link_args=['-Wl,-rpath,.'],
+                         extra_link_args=extra_link_args,
                          extra_compile_args=['-Wextra',
                                              '-Waggregate-return',
                                              '-Wfloat-equal',
@@ -138,7 +141,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(name='android-setools',
-      version='4.5.0-dev1',
+      version='4.5.0-dev2',
       description='Android SELinux policy analysis tools.',
       author='Meir Komet',
       author_email='mskomet1@gmail.com',
@@ -147,9 +150,9 @@ setup(name='android-setools',
       packages=['setools', 'setools.checker', 'setools.diff', 'setoolsgui', 'setoolsgui.apol'],
       scripts=['apol', 'sediff', 'seinfo', 'seinfoflow', 'sesearch', 'sedta', 'sechecker'],
       data_files=installed_data,
-      package_data={'': ['*.so.*', '*.ui', '*.qhc', '*.qch'], 'setools': ['perm_map',
-                                                                          'policyrep.pyi',
-                                                                          'py.typed']},
+      package_data={'': ['*.ui', '*.qhc', '*.qch'], 'setools': ['perm_map',
+                                                                'policyrep.pyi',
+                                                                'py.typed']},
       ext_modules=cythonize(ext_py_mods, include_path=['setools/policyrep'],
                             annotate=cython_annotate,
                             compiler_directives={"language_level": 3,
